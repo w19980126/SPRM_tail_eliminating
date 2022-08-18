@@ -1,9 +1,10 @@
 function [center_raw,center_col,R,mask] = findcircle(I,thickness,fct,method)
-    % 本函数是用来专门读取k空间圆环的，本函数考虑了由于实空间图片
-    % 横纵比不同而引起的k空间中kx和ky频率刻度的差异
-    % 本函数通过引入频率归一化因子f0来消除由于实空间
-    % 图片纵横比而引入的倒空间频率刻度差异
-    % 注意，此时输出的半径R是以x方向进行归一化之后的半径！！！
+% 本函数是用来专门读取k空间圆环的，本函数考虑了由于实空间图片
+% 横纵比不同而引起的k空间中kx和ky频率刻度的差异
+% 本函数通过引入频率归一化因子f0来消除由于实空间
+% 图片纵横比而引入的倒空间频率刻度差异
+% 注意，此时输出的半径R是以x方向进行归一化之后的半径！！！
+% fcut是指定多少百分比的中心部分被盖住，防止低频信号太大导致图片对比度减小
 
     [m,n] = size(I);
     f0 = n/m;   % 频率校正因子，通过这个因子将y方向
@@ -12,6 +13,7 @@ function [center_raw,center_col,R,mask] = findcircle(I,thickness,fct,method)
     figure
     imagesc(abs(I));
     axis off
+    axis equal
 
     if nargin == 3 || (nargin == 4 && method == 0)     
         [x,y] = ginput();  % x是各点的x坐标，y是各点的y坐标
@@ -19,7 +21,7 @@ function [center_raw,center_col,R,mask] = findcircle(I,thickness,fct,method)
         while 1
             prompt = {'level:','block length:'};
             dlgtitle = 'Input';
-            definput = {'0.75','5'};
+            definput = {'0.98','5'};
             dims = [1 20];
             answer=inputdlg(prompt,dlgtitle,dims,definput);
             answer=str2double(answer);
@@ -31,8 +33,8 @@ function [center_raw,center_col,R,mask] = findcircle(I,thickness,fct,method)
             BW(I<level*max(I.*Block,[],'all')) = 0;
             BW=BW.*Block;
             
-            F=figure;imagesc(BW);
-            pause(0.2);   % 观察二值化后的结果是否满意
+            F=figure;imagesc(BW);axis off;axis equal
+            pause(0.1);   % 观察二值化后的结果是否满意
             answer=questdlg('Continue?','Continue?','YES','NO','YES');
             switch answer
                 case 'YES'
@@ -55,6 +57,8 @@ function [center_raw,center_col,R,mask] = findcircle(I,thickness,fct,method)
     imagesc(abs(I).*mask)
     hold on
     plot(x,y/f0,'^r')
+    axis off
+    axis equal
 
 end
 

@@ -1,55 +1,54 @@
 %% 纳米颗粒数据处理
+%% 中值滤波法去除背景，无明场对比
 close all
 clear all
 clc
-tiffpath = 'F:\work\散射场\实验数据\20220407_AuNPs_AgNWs\AuNPs_60nm\A1';
+tiffpath = 'F:\work\散射场\实验数据\20220408_PsNPs_colission\PsNPs_300nm\BG';
 tiffs = dir(fullfile(tiffpath,'*.tiff'));
 
+BG = MVMExtBG(tiffpath);
 
-I1 = double(imread(fullfile(tiffpath,tiffs(1).name))) - double(imread(fullfile(tiffpath,tiffs(4).name)));
-I2 = double(imread(fullfile(tiffpath,tiffs(2).name))) - double(imread(fullfile(tiffpath,tiffs(3).name)));
+I = double(imread(fullfile(tiffpath,tiffs(1).name))) - BG;
+
+[~,rectout] = imcrop(I/max(I,[],'all'));
+rectout = round(rectout);
+r1 = rectout(2);
+r2 = rectout(2) + rectout(4) +(mod(rectout(4),2) ~= 0);
+c1 = rectout(1);
+c2 = rectout(1) + rectout(3)+(mod(rectout(3),2) ~= 0);
+I = I(r1:r2,c1:c2);
+close 
 
 figure
-imagesc(I1);
-axis off
-axis equal
-colormap(sunglow)
-figure
-imagesc(I2);
-axis off
-axis equal
-colormap(sunglow)
-F = fftshift(fft2(squeeze(I1)));
-figure
-imagesc(log(abs(F)))
+imagesc(I);
 axis off
 axis equal
 colormap(sunglow)
 
-[center_raw,center_col,R,~] = findcircle(log(abs(F)),5,0,2);
+F = fftshift(fft2(I));
+[center_raw,center_col,R,~] = findcircle(log(abs(F)),5,0,1);
 peaks = [center_col,center_raw,R];
 
-mask = EwaldMask(F,peaks,0.9,1.1);
+mask = EwaldMask(F,peaks,0.15,'G',2);
 I_rcn = (ifft2(ifftshift(F.*mask)));
 figure
-imagesc(2*real(I_rcn))
+imagesc(abs(I_rcn))
 axis off
 axis equal
 colormap(sunglow)
-figure
-imagesc(2*abs(I_rcn))
-axis off
-axis equal
-colormap(sunglow)
+
+line([40 40+2000/73.8],[165 165],'color','white','linewidth',6)     % scalebar，长5um
 
 
 %% 读取剖面强度
 
-[int0,X,Y] = LineCut(I1,X,Y);
+[int0,X,Y] = LineCut(I,X,Y);
 [int1,X,Y] = LineCut(2*abs(I_rcn),X,Y);
+[int1,X,Y] = LineCut(2*real(I_rcn),X,Y);
+[int1,X,Y] = LineCut(2*imag(I_rcn),X,Y);
 [int2,X,Y] = LineCut(I2,X,Y);
 
-[int0,X,Y] = LineCut(I1);
+[int0,X,Y] = LineCut(I);
 [int1,X,Y] = LineCut(2*abs(I_rcn));
 [int2,X,Y] = LineCut(I2);
 
@@ -103,40 +102,52 @@ plot3(1.4*ones(size(I2)),1:length(I2),temp0);
 close all
 clear all
 clc
-tiffpath = 'F:\work\散射场\实验数据\20220408_PsNPs_colission\PsNPs_300nm\NPs1';
+tiffpath = 'F:\work\散射场\实验数据\20220408_PsNPs_colission\PsNPs_300nm\BG';
 tiffs = dir(fullfile(tiffpath,'*.tiff'));
 
 BG = MVMExtBG(tiffpath);
 
 I = double(imread(fullfile(tiffpath,tiffs(2).name))) - BG;
+
+[~,rectout] = imcrop(I/max(I,[],'all'));
+rectout = round(rectout);
+r1 = rectout(2);
+r2 = rectout(2) + rectout(4) +(mod(rectout(4),2) ~= 0);
+c1 = rectout(1);
+c2 = rectout(1) + rectout(3)+(mod(rectout(3),2) ~= 0);
+I = I(r1:r2,c1:c2);
+close 
+
 figure
-imagesc(I)
+imagesc(I);
 axis off
 axis equal
 colormap(sunglow)
 
 F = fftshift(fft2(I));
-[center_raw,center_col,R,mask] = findcircle(log(abs(F)),5,0,1);
+[center_raw,center_col,R,~] = findcircle(log(abs(F)),5,0,1);
 peaks = [center_col,center_raw,R];
 
-mask = EwaldMask(F,peaks,0.9,1.1);
+mask = EwaldMask(F,peaks,0.15,'G',2);
 I_rcn = (ifft2(ifftshift(F.*mask)));
 figure
-imagesc(2*abs(I_rcn))
+imagesc(abs(I_rcn))
 axis off
 axis equal
 colormap(sunglow)
 
+line([40 40+2000/73.8],[165 165],'color','white','linewidth',6)     % scalebar，长5um
+
 %% 利用上一节得到的mask和BG，自动处理图片并保存为600dip的tiff格式
-savepath = 'F:\work\散射场\实验数据\20220408_PsNPs_colission\PsNPs_300nm\Result\BG';
+savepath = 'F:\work\散射场\实验数据\20220407_AuNPs_AgNWs\AgNWs\Result\A1_减去第一帧';
 mkdir(savepath)
 hwait = waitbar(0);
 for ii = 1:length(tiffs)
     I = double(imread(fullfile(tiffpath,tiffs(ii).name))) - BG;
-    F = fftshift(fft2(I));
+    F = fftshift(fft2(I(y(1):y(2),x(1):x(2))));
 
     f1 = figure('visible','off');
-    imagesc(I)
+    imagesc(I(y(1):y(2),x(1):x(2)))
     axis off
     axis normal
     colormap(sunglow)

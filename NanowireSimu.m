@@ -1,4 +1,6 @@
-
+close all
+clear all
+clc
 %% 生成干涉散射场
 theta = 70.5;
 n = 1.5;
@@ -6,23 +8,20 @@ lambda = 680;
 kapa = 8;
 phi = 0.1*pi;
 scale_factor = 0.1;
-M_size = 601;
+M_size = 501;
 theta_spp = -90;
 theta_res = 70.5;
 [Ei,Es,F,I] = wave_generate(lambda,n,kapa,theta,phi,scale_factor,M_size,theta_spp,theta_res);
-imagesc(I)
-figure
-imagesc(abs(F))
 
 %% 生成纳米线
 %--------------------------------------
 % 纳米线
-S = zeros(601);
+S = zeros(501);
 sz = size(S);
 alpha = 135;     % 纳米线沿ii方向倾斜角度
 L = 45;    % 纳米线长度，单位像素
 width = 0.5;      % 纳米线直径，单位像素
-oriP = [301,301];   % 指定原点
+oriP = [251,251];   % 指定原点
 for ii = 1:sz(1)
     for jj = 1:sz(2)
         x0 = (ii - oriP(1));
@@ -34,8 +33,18 @@ for ii = 1:sz(1)
         end
     end
 end
-figure
-imshow(S)
+% figure
+% imshow(S)
+% 
+% N = 7;
+% [x,y] = ginput(N);
+% x = ceil(x);
+% y = ceil(y);
+% for ii = 1:N
+%     S(y(ii),x(ii)) = 1;
+% end
+% figure
+% imshow(S)
 
 % -------------------------------------
 % convolution
@@ -43,47 +52,35 @@ I1 = conv2(Es,S.*exp(i*angle(Ei)),'same');  % 复散射场
 I2 = Ei;    % 平面参考波
 I3 = conj(I1).*Ei + I1.*conj(Ei) + (abs(I1)).^2;    % 直流分量
 I4 = conj(I1).*Ei + I1.*conj(Ei);   % 只考虑散射，忽略直流散射场项
-figure
-imagesc(I4)
-figure
-imagesc(I3)
 
 %% 重构并读取剖面强度
-
-Icut1 = I4;     % 成像结果
-
 figure
-imagesc(Icut1);
+imagesc(I4);
 axis off
 axis equal
 colormap(sunglow)
 
-F = fftshift(fft2(squeeze(Icut1)));
-[center_raw,center_col,R,mask] = findcircle(log(abs(F)),5,0,2);
+F = fftshift(fft2(squeeze(I4)));
+[center_raw,center_col,R,~] = findcircle(log(abs(F)),5,0,0);
 peaks = [center_col,center_raw,R];
 
-mask = EwaldMask(F,peaks,0.85,1.15);
+mask = EwaldMask(F,peaks,0.2,'G',1);
 I_flt = ifft2(ifftshift(F.*mask));
-figure
-imagesc(2*real(I_flt))      % 实值
-axis off
-axis equal
-colormap(sunglow)
 figure
 imagesc(2*abs(I_flt))       % 模值
 axis off
 axis equal
 colormap(sunglow)
 
-% -----------------------------------
+%% -----------------------------------
 % 读取剖面强度
-[I0,X,Y] = LineCut(Icut1,X,Y);
-[I1,X,Y] = LineCut(2*real(I_flt),X,Y);
+X = [200,300];Y = [200,300];
+[I0,X,Y] = LineCut(I4,X,Y);
 [I2,X,Y] = LineCut(2*abs(I_flt),X,Y);
 
-[I0,X,Y] = LineCut(Icut1);
-[I2,X,Y] = LineCut(2*real(I_flt));
-[I2,X,Y] = LineCut(2*abs(I_flt));
+hl = findobj(gca,'type','line');
+hl(1).YData = I2/max(I2);
+hl(2).YData = I0/max(I0);
 
 LineCut(S,X,Y);
 

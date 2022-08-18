@@ -36,10 +36,18 @@ function [intensit,X,Y] = LineCut(I,pstx,psty)
 
     x1 = round(x1);     
     x2 = round(x2);
+    
+    if size(x1,1) == 1
+        x1 = x1';
+    end
+    if size(x2,1) == 1
+        x2 = x2';
+    end
+
     temp = [x1,x2]';    
     x1 = temp(:,1);     % x1是第一个点的坐标，x1(1)是x列，x1(2)是y行
     x2 = temp(:,2);     % x2是第二个点的坐标
-    [n,dim] = max(abs(x2 - x1));    % 确定切线的长度和方向性，以较长轴为参考进行延伸
+    [~,dim] = max(abs(x2 - x1));    % 确定切线的长度和方向性，以较长轴为参考进行延伸
     k = (x2(2)-x1(2))/(x2(1)-x1(1));
     n = max(abs(x2 - x1));  % 确定长轴方向与输出数据长度
     if k == inf % 划线与y轴平行

@@ -2,63 +2,45 @@
 close all
 clear all
 clc
-tiffpath = 'F:\work\ScaterFeild\实验数据\20220307_AgNWs\A7';
+tiffpath = 'F:\work\散射场\实验数据\20220407_AuNPs_AgNWs\AgNWs\scratch';
 tiffs = dir(fullfile(tiffpath,'*.tiff'));
 
-I1 = double(imread(fullfile(tiffpath,tiffs(5).name))) - double(imread(fullfile(tiffpath,tiffs(6).name)));
-I1 = double(imread(fullfile(tiffpath,tiffs(5).name))) - double(imread(fullfile(tiffpath,tiffs(10).name)));
+BG = MVMExtBG(tiffpath);
 
-I2 = double(imread(fullfile(tiffpath,tiffs(2).name))) - double(imread(fullfile(tiffpath,tiffs(4).name)));
+I1 = double(imread(fullfile(tiffpath,tiffs(3).name))) - BG;
 
-Icut1 = I1(1:479,76:554);
-Icut2 = I2(1:479,76:554);
 figure
-imagesc(Icut1);
+imagesc(I1);
 axis off
 axis equal
-colormap(sunglow)
-figure
-imagesc(Icut2);
-axis off
-axis equal
-colormap(sunglow)
-F = fftshift(fft2(squeeze(Icut1)));
-[center_raw,center_col,R,mask] = findcircle(log(abs(F)),5);
+colormap(gray)
+
+F = fftshift(fft2(squeeze(I1)));
+[center_raw,center_col,R,~] = findcircle(log(abs(F)),5,0,0);
 peaks = [center_col,center_raw,R];
+mask = EwaldMask(log(abs(F)),peaks,0.1,'G',1);
 
-[mask,peaks,deg] = GetFourierMask(log(abs(F)),20,0,-1);
-peaks = peaks(1,:);
-
-mask1 = EwaldMask(F,peaks,0.75,1.15,'out');
-mask2 = EwaldMask(F,peaks,0.75,1.15,'on');
-
-I_flt = ifft2(ifftshift(F.*mask1));
-I_spr = ifft2(ifftshift(F.*mask2));
-% figure
-% imagesc(2*real(I_flt))
-% axis off
-% axis equal
-% colormap(sunglow)
-figure
-imagesc(2*real(I_spr))
-axis off
-axis equal
-colormap(sunglow)
+I_flt = ifft2(ifftshift(F.*mask));
 figure
 imagesc(2*abs(I_flt))
 axis off
 axis equal
-colormap(sunglow)
+colormap(gray)
 
-[I0,X,Y] = LineCut(Icut1,X,Y);
-[I1,X,Y] = LineCut(2*abs(I_spr),X,Y);
+X = [150 300];Y = [223 223];
+[I0,X,Y] = LineCut(I1,X,Y);
 [I2,X,Y] = LineCut(2*abs(I_flt),X,Y);
-[I3,X,Y] = LineCut(angle(I_flt),X,Y);
 
-[I0,X,Y] = LineCut(Icut1);
-[I2,X,Y] = LineCut(2*real(I_spr));
+[I0,X,Y] = LineCut(I1);
 [I2,X,Y] = LineCut(2*abs(I_flt));
 [I3,X,Y] = LineCut(Icut2);
+
+line([60 60+5000/73.8],[400 400],'color','white','linewidth',6)     % scalebar，长5um
+
+figure
+hl = get(gca,'children');
+set(hl(1),'YData',I2/max(I2));
+set(hl(2),'YData',I0/max(I0));
 
 %% 曲线拟合
 % -------------------------------------
